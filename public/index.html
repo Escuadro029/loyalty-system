@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Coffee Loyalty</title>
+  <script src="loyalty-system/html5-qrcode.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Base Styles */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f7f3ee;
+      margin: 0;
+      padding: 20px;
+      color: #4b3b2b;
+    }
+
+    h1,
+    h2 {
+      margin: 0 0 15px 0;
+      font-weight: 600;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .logo {
+      font-size: 36px;
+      animation: float 2s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0)
+      }
+
+      50% {
+        transform: translateY(-6px)
+      }
+
+      100% {
+        transform: translateY(0)
+      }
+    }
+
+    /* Card Container */
+    .cards-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 25px;
+    }
+
+    .card {
+      background: #fff;
+      padding: 25px;
+      border-radius: 16px;
+      margin-bottom: 25px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      flex: 1;
+      min-width: 280px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Inputs */
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 14px;
+      transition: border 0.2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #8b5e3c;
+    }
+
+    /* Buttons */
+    button {
+      padding: 12px 20px;
+      background: #8b5e3c;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all .2s;
+      margin-top: 5px;
+    }
+
+    button:hover {
+      background: #6f472a;
+      transform: scale(1.05);
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th {
+      background: #8b5e3c;
+      color: white;
+      padding: 12px;
+      text-align: left;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+      background: #faf6f2;
+    }
+
+    .tableQR {
+      cursor: pointer;
+      width: 40px;
+      transition: transform .2s;
+    }
+
+    .tableQR:hover {
+      transform: scale(1.2);
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    /* Modals */
+    #qrModal,
+    #messageModal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      text-align: center;
+      overflow-y: auto;
+      padding-top: 50px;
+    }
+
+    #qrModalContent,
+    #messageModal div {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      width: 400px;
+      max-width: 90%;
+      margin: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    #qrModal img {
+      width: 230px;
+      margin: 15px 0;
+    }
+
+    #transactions {
+      max-height: 150px;
+      overflow: auto;
+      text-align: left;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
+    .scan-btn {
+      padding: 10px 20px;
+      background: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .scan-btn:hover {
+      background: #27ae60;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 8px;
+      font-size: 18px;
+    }
+
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .cards-container {
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 480px) {
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <div class="logo">☕</div>
+    <h1>ABC Company</h1>
+  </div>
+
+  <div class="container" style="display:flex; flex-wrap:wrap; gap:20px;">
+
+    <!-- Column 1: Registration -->
+    <div class="card" style="flex:1; min-width:280px;">
+      <h2>Register Customer</h2>
+
+      <input id="firstName" type="text" placeholder="First Name">
+      <input id="lastName" type="text" placeholder="Last Name">
+      <input id="email" type="email" placeholder="Email (optional)">
+      <input id="phone" type="tel" placeholder="09XXXXXXXXX" maxlength="11"
+        oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+
+      <button onclick="register()">Register</button>
+    </div>
+
+    <!-- Column 2: Reports + QR Scanner -->
+    <div class="column-right" style="flex:1; min-width:280px; display:flex; flex-direction:column; gap:20px;">
+
+      <!-- Reports -->
+      <div class="card">
+        <h2>Reports</h2>
+        <button onclick="downloadCSV('customers')">Download Customers CSV</button>
+        <button onclick="downloadCSV('transactions')">Download Transactions CSV</button>
+      </div>
+
+      <!-- QR Scanner -->
+      <div class="card">
+        <h2>Scan QR</h2>
+        <button onclick="startScan()">Start Scanning</button>
+        <input id="qrInput" placeholder="Scan QR here" onkeydown="handleScanKey(event)"
+          style="width:0; height:0; border:none; padding:0; margin:0; opacity:0;">
+
+        <div id="reader" style="margin-top:15px;"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Customers Table -->
+  <div class="card">
+    <h2>Customers</h2>
+    <input class="search" type="text" id="searchPhone" placeholder="Search phone or code..." oninput="filterTable()">
+    <table id="customersTable">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Customer Name</th>
+          <th>Phone</th>
+          <th>Code</th>
+          <th>Visits</th>
+          <th>Total Spend</th>
+          <th>QR</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination">
+      <button onclick="changePage(-1)">Previous</button>
+      <span id="pageInfo"></span>
+      <button onclick="changePage(1)">Next</button>
+    </div>
+  </div>
+
+  <!-- QR Modal -->
+  <div id="qrModal">
+    <div id="qrModalContent">
+      <h3>Customer Loyalty QR</h3>
+      <img id="qrModalImage">
+
+      <p><b>Customers Name:</b> <span id="modalFullName"></span></p>
+      <p><b>Visits:</b> <span id="modalPoints">0</span></p>
+      <p><b>Total Spend:</b> ₱<span id="modalAmount">0.00</span></p>
+      <input id="modalAddAmount" type="number" placeholder="Add purchase ₱">
+      <button onclick="addAmount()">Add Purchase</button>
+      <button onclick="closeModal()">Close</button>
+      <div id="transactions"></div>
+    </div>
+  </div>
+
+  <!-- Message Modal -->
+  <div id="messageModal">
+    <div>
+      <p id="modalTitle" style="font-weight:600; margin-bottom:10px;"></p>
+      <p id="modalMessage" style="margin-bottom:15px;"></p>
+      <button onclick="closeMessageModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+      <p id="confirmMessage">Are you sure?</p>
+      <div style="margin-top:15px; display:flex; justify-content:flex-end; gap:10px;">
+        <button id="confirmYes" style="background:#2ecc71;">Confirm</button>
+        <button id="confirmNo" style="background:#e74c3c;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    let customersData = [];
+    let currentPage = 1;
+    const rowsPerPage = 5;
+    let currentModalCode = null;
+    let scanBuffer = "";
+    let scannerActive = false;
+
+    function showMessageModal(title, message) {
+      document.getElementById("modalTitle").innerText = title;
+      document.getElementById("modalMessage").innerText = message;
+      document.getElementById("messageModal").style.display = "block";
+    }
+
+    function closeMessageModal() { document.getElementById("messageModal").style.display = "none"; }
+
+    function validatePhone(phone) { return /^09\d{9}$/.test(phone); }
+
+    async function register() {
+      const firstName = document.getElementById("firstName").value.trim();
+      const lastName = document.getElementById("lastName").value.trim();
+      const email = document.getElementById("email").value.trim(); // optional
+      const phone = document.getElementById("phone").value.trim();
+
+      const errors = [];
+      if (!firstName) errors.push("First Name");
+      if (!lastName) errors.push("Last Name");
+      if (!validatePhone(phone)) errors.push("Phone");
+
+      if (errors.length > 0) {
+        return showMessageModal("⚠️ Invalid Input", `Please fill/enter valid: ${errors.join(", ")}`);
+      }
+
+      try {
+        const res = await fetch("/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ firstName, lastName, email, phone, amount: 0 })
+        });
+
+        const data = await res.json();
+        if (data.error) return showMessageModal("⚠️ " + data.error);
+
+        showModal(data.code, data.qrPath, 0, 0, [], data.firstName, data.lastName);
+
+        await loadCustomers();
+
+        // Clear inputs
+        document.getElementById("firstName").value = "";
+        document.getElementById("lastName").value = "";
+        document.getElementById("email").value = "";
+        document.getElementById("phone").value = "";
+
+      } catch (err) {
+        console.error(err);
+        showMessageModal("⚠️ Error", "Failed to register. Try again.");
+      }
+    }
+
+    function showModal(code, qrPath, points, totalAmount, transactions = [], firstName, lastName) {
+      currentModalCode = code;
+      document.getElementById("qrModalImage").src = qrPath;
+
+      // Display full name
+      document.getElementById("modalFullName").textContent = `${lastName.toUpperCase()}, ${firstName.toUpperCase()}`;
+
+      document.getElementById("modalPoints").textContent = points;
+      // Display total spend
+      document.getElementById("modalAmount").textContent = totalAmount.toFixed(2);
+
+      // Display transactions
+      const txContainer = document.getElementById("transactions");
+      txContainer.innerHTML = ""; // clear previous
+
+      if (transactions.length === 0) {
+        txContainer.innerHTML = "<p>No transactions yet.</p>";
+      } else {
+        const table = document.createElement("table");
+        table.innerHTML = `
+        <tr>
+          <th>Date</th>
+          <th>Amount</th>
+        </tr>
+      `;
+        transactions.forEach(tx => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+          <td>${new Date(tx.created_at).toLocaleString()}</td>
+          <td>₱${tx.amount.toFixed(2)}</td>
+        `;
+          table.appendChild(tr);
+        });
+        txContainer.appendChild(table);
+      }
+
+      // Show the modal
+      document.getElementById("qrModal").style.display = "flex";
+    }
+
+
+    function closeModal() {
+      document.getElementById("qrModal").style.display = "none";
+      document.getElementById("modalAddAmount").value = "";
+    }
+
+    async function addAmount() {
+      const addAmount = parseFloat(document.getElementById("modalAddAmount").value) || 0;
+      if (!addAmount) {
+        showMessageModal("⚠️ No amount inputted");
+        return;
+      }
+      try {
+        const res = await fetch("/add-point", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: currentModalCode, amount: addAmount })
+        });
+        const data = await res.json();
+
+        console.log(data)
+        if (data.error) {
+          showMessageModal("⚠️ " + data.error);
+          return;
+        }
+
+        showModal(
+          data.code,
+          `/qrcodes/${data.code}.png`,
+          data.points,
+          data.amount,
+          data.transactions,
+          data.firstName,
+          data.lastName
+        );
+
+        await loadCustomers();
+        closeModal();
+        document.getElementById("modalAddAmount").value = ""; // reset input
+
+      } catch (err) {
+        console.error(err);
+        showMessageModal("⚠️ Failed to add amount. Try again.");
+      }
+    }
+
+
+    async function loadCustomers() {
+      try {
+        const res = await fetch("/customers");
+        customersData = await res.json();
+        currentPage = 1;
+        renderTable();
+      } catch (err) { console.error(err); }
+    }
+
+    function renderTable() {
+      const tbody = document.querySelector("#customersTable tbody");
+      tbody.innerHTML = "";
+      const start = (currentPage - 1) * rowsPerPage;
+      const pageData = customersData.slice(start, start + rowsPerPage);
+
+      pageData.forEach(c => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+              <td>
+        <button class="redeem-btn" data-code="${c.code}" ${c.amount === 0 ? 'hidden' : ''}>Redeem</button>
+      </td>
+      <td>${(c.lastName || '').toUpperCase()}, ${(c.firstName || '').toUpperCase()}</td>
+      <td>${c.phone}</td>
+      <td>${c.code}</td>
+          <td>${c.points}</td>
+      <td>₱${(c.amount || 0).toFixed(2)}</td>
+      <td><img src="/qrcodes/${c.code}.png" class="tableQR" title="QR for ${c.code}"></td>
+
+    `;
+        tbody.appendChild(tr);
+      });
+
+      // QR code click
+      document.querySelectorAll(".tableQR").forEach(img => {
+        img.addEventListener("click", async () => {
+          const row = img.closest("tr");
+
+          // Extract code from table
+          const code = row.cells[3].innerText;
+
+          try {
+            // Fetch customer record with transactions from server
+            const res = await fetch(`/customers/${code}`);
+            if (!res.ok) {
+              const text = await res.text();
+              console.error("Server returned:", text);
+              showMessageModal("⚠️ Error", "Customer not found or server error.");
+              return;
+            }
+
+            const customer = await res.json();
+
+            // Show modal with transactions
+            showModal(
+              customer.code,
+              `/qrcodes/${customer.code}.png`,
+              customer.points || 0,          // points
+              customer.amount || 0,          // total amount
+              customer.transactions || [],   // transaction history
+              customer.firstName,
+              customer.lastName
+            );
+
+          } catch (err) {
+            console.error(err);
+            showMessageModal("⚠️ Error", "Failed to fetch customer data.");
+          }
+        });
+      });
+
+      // Redeem button click
+      document.querySelectorAll(".redeem-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const code = btn.dataset.code;
+
+          // Show confirmation modal
+          const modal = document.getElementById("confirmModal");
+          const message = document.getElementById("confirmMessage");
+          message.textContent = "Redeem this customer's accumulated amount?";
+          modal.style.display = "flex";
+
+          const confirmYes = document.getElementById("confirmYes");
+          const confirmNo = document.getElementById("confirmNo");
+
+          // Remove previous click handlers
+          confirmYes.replaceWith(confirmYes.cloneNode(true));
+          confirmNo.replaceWith(confirmNo.cloneNode(true));
+
+          const newYes = document.getElementById("confirmYes");
+          const newNo = document.getElementById("confirmNo");
+
+          newYes.addEventListener("click", async () => {
+            modal.style.display = "none";
+
+            try {
+              const res = await fetch("/redeem", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code })
+              });
+              const data = await res.json();
+
+              if (data.error) {
+                showMessageModal("⚠️ Error", data.error);
+                return;
+              }
+
+              showMessageModal("✅ Redeemed", `Customer ${data.firstName} ${data.lastName}'s amount has been redeemed.`);
+              loadCustomers();
+            } catch (err) {
+              console.error(err);
+              showMessageModal("⚠️ Error", "Failed to redeem.");
+            }
+          });
+
+          newNo.addEventListener("click", () => {
+            modal.style.display = "none"; // just close
+          });
+        });
+      });
+
+
+      // Update pagination info
+      const totalPages = Math.ceil(customersData.length / rowsPerPage) || 1;
+      document.getElementById("pageInfo").innerText = `Page ${currentPage} of ${totalPages}`;
+    }
+
+
+    function changePage(dir) {
+      const totalPages = Math.ceil(customersData.length / rowsPerPage) || 1;
+      currentPage += dir;
+      if (currentPage < 1) currentPage = 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      renderTable();
+    }
+
+    function filterTable() { currentPage = 1; renderTable(); }
+
+    function downloadCSV(type) { window.open(type === 'customers' ? '/export-customers' : '/export-transactions', '_blank'); }
+
+
+    async function handleScanKey(e) {
+      const key = e.key;
+
+      if (["Shift", "Control", "Alt", "Meta"].includes(key)) return;
+
+      if (key === "Enter") {
+        const code = scanBuffer.trim().replace(/^["']|["']$/g, "");
+        scanBuffer = "";
+
+        if (!code) {
+          showMessageModal("⚠️ Scanner Error", "No code detected.");
+          return;
+        }
+
+        try {
+          const res = await fetch(`/customers/${code}`);
+          if (!res.ok) {
+            const text = await res.text();
+            console.error("Server returned:", text);
+            showMessageModal("⚠️ Error", "Customer not found or server error.");
+            return;
+          }
+
+          const customer = await res.json();
+
+          // Show modal with full name & transactions
+          showModal(
+            customer.code,
+            `/qrcodes/${customer.code}.png`,
+            customer.points,
+            customer.amount || 0,
+            customer.transactions || [],
+            customer.firstName,
+            customer.lastName
+          );
+
+          closeMessageModal()
+        } catch (err) {
+          console.error(err);
+          showMessageModal("⚠️ Error", "Failed to fetch customer data.");
+        }
+      } else {
+        scanBuffer += key;
+      }
+    }
+
+    // Start scanning session
+    function startScan() {
+      const input = document.getElementById("qrInput");
+      input.value = "";
+      scanBuffer = "";
+      input.focus();
+      scannerActive = true;
+      showScannerModal();
+    }
+
+    // Exclusive scanner modal
+    function showScannerModal() {
+      const modal = document.getElementById("messageModal");
+      document.getElementById("modalTitle").innerText = "📷 Scanner Ready";
+      document.getElementById("modalMessage").innerText = "Please scan the customer's QR code.";
+
+      const btn = modal.querySelector("button");
+      btn.innerText = "Stop";
+      btn.onclick = () => {
+        closeScannerModal();
+      };
+
+      modal.style.display = "block";
+    }
+
+    function closeScannerModal() {
+      document.getElementById("messageModal").style.display = "none";
+      // Clear input and buffer
+      const input = document.getElementById("qrInput");
+      input.value = "";
+      scanBuffer = "";
+      scannerActive = false;
+    }
+
+    loadCustomers();
+  </script>
+</body>
+
+</html>
