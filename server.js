@@ -237,6 +237,24 @@ app.post("/customers/:code/redeem", async (req, res) => {
   }
 });
 
+app.get("/admin", async (req, res) => {
+  try {
+    const customers = await pool.query("SELECT * FROM customers ORDER BY id DESC");
+    const transactions = await pool.query("SELECT * FROM transactions ORDER BY created_at DESC");
+ß
+    res.send(`
+      <h1>Customers</h1>
+      <pre>${JSON.stringify(customers.rows, null, 2)}</pre>
+
+      <h1>Transactions</h1>
+      <pre>${JSON.stringify(transactions.rows, null, 2)}</pre>
+    `);
+  } catch (err) {
+    res.send("Error: " + err.message);
+  }
+});
+
+
 // ----------------------
 // Start server
 // ----------------------
