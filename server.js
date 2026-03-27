@@ -210,38 +210,69 @@ app.get("/customers/:code", async (req, res) => {
 });
 
 // Redeem
+// Redeem
 app.post("/customers/:code/redeem", async (req, res) => {
   try {
     const { code } = req.params;
     let { amount } = req.body;
-    amount = Number(amount);
-    if (isNaN(amount) || amount <= 0) return res.status(400).send("Invalid amount");
 
-    const custResult = await pool.query("SELECT * FROM customers WHERE code = $1", [code]);
-    if (custResult.rows.length === 0) return res.status(404).send("Customer not found");
+    amount = Number(amount);
+
+    // ✅ Validate input
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).send("Invalid amount");
+    }
+
+    const custResult = await pool.query(
+      "SELECT * FROM customers WHERE code = $1",
+      [code]
+    );
+
+    if (custResult.rows.length === 0) {
+      return res.status(404).send("Customer not found");
+    }
 
     const customer = custResult.rows[0];
-    const redeemAmount = Math.min(amount, Number(customer.amount) || 0);
-    const remainingAmount = (Number(customer.amount) || 0) - redeemAmount;
+    const customerAmount = Number(customer.amount) || 0;
 
-    await pool.query("UPDATE customers SET amount = $1 WHERE code = $2", [remainingAmount, code]);
+    // 🚨 TRAP: prevent redeem greater than balance
+    if (amount > customerAmount) {
+      return res.status(400).send(
+        `Insufficient balance. Available: ₱${customerAmount.toFixed(2)}`
+      );
+    }
+
+    // ✅ Exact redeem
+    const redeemAmount = amount;
+    const remainingAmount = customerAmount - redeemAmount;
+
+    // Update balance
     await pool.query(
-      "INSERT INTO transactions (code, description, points, amount, created_at) VALUES ($1, $2, $3, $4, $5)",
+      "UPDATE customers SET amount = $1 WHERE code = $2",
+      [remainingAmount, code]
+    );
+
+    // Save transaction
+    await pool.query(
+      `INSERT INTO transactions 
+      (code, description, points, amount, created_at) 
+      VALUES ($1, $2, $3, $4, $5)`,
       [code, "redeem", 0, redeemAmount, new Date()]
     );
 
     res.send("ok");
+
   } catch (err) {
     console.error("Redeem error:", err);
     res.status(500).send("Server error: " + err.message);
   }
 });
 
+
 app.get("/admin", async (req, res) => {
   try {
     const customers = await pool.query("SELECT * FROM customers ORDER BY id DESC");
     const transactions = await pool.query("SELECT * FROM transactions ORDER BY created_at DESC");
-ß
     res.send(`
       <h1>Customers</h1>
       <pre>${JSON.stringify(customers.rows, null, 2)}</pre>
