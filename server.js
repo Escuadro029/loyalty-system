@@ -34,6 +34,7 @@ db.run(`
 CREATE TABLE IF NOT EXISTS transactions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   code TEXT,
+  description TEXT,
   amount REAL,
   points INTEGER,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -91,12 +92,12 @@ app.post("/register", async (req, res) => {
           db.run("INSERT INTO transactions (code, amount, points) VALUES (?, ?, ?)", [code, amount, 1]);
         }
 
-        res.send({ 
-          message: "Customer registered", 
-          code, 
-          qrPath: `/qrcodes/${code}.png`, 
-          firstName, 
-          lastName 
+        res.send({
+          message: "Customer registered",
+          code,
+          qrPath: `/qrcodes/${code}.png`,
+          firstName,
+          lastName
         });
       } catch (err) {
         console.error(err);
@@ -190,6 +191,46 @@ app.get("/customers/:code", (req, res) => {
     );
   });
 });
+
+app.post("/customers/:code/redeem", async (req, res) => {
+  try {
+    const { code } = req.params;
+    let { amount } = req.body;
+    amount = Number(amount);
+
+    if (isNaN(amount) || amount <= 0) return res.status(400).send("Invalid amount");
+
+    const customer = await db.get("SELECT * FROM customers WHERE code = ?", code);
+    if (!customer) return res.status(404).send("Customer not found");
+
+    const customerAmount = Number(customer.amount) || 0;
+    const redeemAmount = Math.min(amount, customerAmount);
+    const remainingAmount = customerAmount - redeemAmount;
+
+    console.log('Redeem:', redeemAmount, 'Remaining:', remainingAmount);
+
+    await db.run("UPDATE customers SET amount = ? WHERE code = ?", remainingAmount, code);
+
+    await db.run(
+      "INSERT INTO transactions (code, description, points, amount, created_at) VALUES (?, ?, ?, ?, ?)",
+      code,
+      "redeem",
+      0,
+      amount,
+      new Date().toISOString()
+    );
+
+    res.send("ok");
+
+
+  } catch (err) {
+    console.error("Redeem error:", err);
+    res.status(500).send("Server error: " + err.message);
+  }
+});
+
+
+
 
 
 

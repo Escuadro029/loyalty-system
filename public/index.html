@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Luna Café </title>
+  <title>Luna Café Loyalty System</title>
   <script src="loyalty-system/html5-qrcode.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -105,10 +105,12 @@
       cursor: pointer;
       width: 40px;
       transition: transform .2s;
+      border-radius: 6px;
     }
 
     .tableQR:hover {
       transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .pagination {
@@ -203,33 +205,32 @@
     }
 
     .header {
-  display: flex;
-  align-items: center;   /* vertically center the logo and text */
-  gap: 15px;             /* space between logo and name */
-  flex-wrap: nowrap;     /* prevent wrapping to next line */
-}
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: nowrap;
+    }
 
-.logo {
-  width: 80px;
-  height: 80px;
-  overflow: hidden;
-  border-radius: 50%;
-  animation: float 2s ease-in-out infinite;
-  flex-shrink: 0;        /* prevent shrinking if text is long */
-}
+    .logo {
+      width: 80px;
+      height: 80px;
+      overflow: hidden;
+      border-radius: 50%;
+      animation: float 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
 
-.logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
 
-h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-}
-
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
 
     @keyframes float {
       0% {
@@ -250,19 +251,11 @@ h1 {
 <body>
 
   <div class="header">
-    <div class="logo">
-      <img src="luna.png" alt="ABC Company Logo">
-    </div>
-    <h1>Luna Café</h1>
+    <div class="logo"><img src="luna.png" alt="ABC Company Logo"></div>
+    <h1>Luna Café Loyalty System</h1>
   </div>
 
-  <!-- <div class="header">
-    <div class="logo">☕</div>
-    <h1>ABC Company</h1>
-  </div> -->
-
   <div class="container" style="display:flex; flex-wrap:wrap; gap:20px;">
-
     <!-- Registration -->
     <div class="card" style="flex:1; min-width:280px;">
       <h2>Register Customer</h2>
@@ -274,13 +267,8 @@ h1 {
       <button onclick="register()">Register</button>
     </div>
 
-    <!-- Reports + Scanner -->
+    <!-- Scanner -->
     <div class="column-right" style="flex:1; min-width:280px; display:flex; flex-direction:column; gap:20px;">
-      <div class="card">
-        <h2>Reports</h2>
-        <button onclick="downloadCSV('customers')">Download Customers CSV</button>
-        <button onclick="downloadCSV('transactions')">Download Transactions CSV</button>
-      </div>
       <div class="card">
         <h2>Scan QR</h2>
         <button onclick="startScan()">Start Scanning</button>
@@ -289,7 +277,6 @@ h1 {
         <div id="reader" style="margin-top:15px;"></div>
       </div>
     </div>
-
   </div>
 
   <!-- Customers Table -->
@@ -322,9 +309,9 @@ h1 {
     <div id="qrModalContent">
       <h3>Customer Loyalty QR</h3>
       <img id="qrModalImage">
-      <p><b>Customers Name:</b> <span id="modalFullName"></span></p>
+      <p><b>Customer Name:</b> <span id="modalFullName"></span></p>
       <p><b>Visits:</b> <span id="modalPoints">0</span></p>
-      <p><b>Total Spend:</b> ₱<span id="modalAmount">0.00</span></p>
+      <p><b>Accumulated Amount:</b> ₱<span id="modalAmount">0.00</span></p>
       <input id="modalAddAmount" type="number" placeholder="Add purchase ₱">
       <button onclick="addAmount()">Add Purchase</button>
       <button onclick="closeModal()">Close</button>
@@ -365,7 +352,6 @@ h1 {
       document.getElementById("modalMessage").innerText = message;
       document.getElementById("messageModal").style.display = "block";
     }
-
     function closeMessageModal() { document.getElementById("messageModal").style.display = "none"; }
     function validatePhone(phone) { return /^09\d{9}$/.test(phone); }
 
@@ -403,7 +389,13 @@ h1 {
         table.innerHTML = `<tr><th>Date</th><th>Amount</th></tr>`;
         transactions.forEach(tx => {
           const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${new Date(tx.created_at).toLocaleString()}</td><td>₱${tx.amount.toFixed(2)}</td>`;
+          tr.innerHTML = `
+  <td>${new Date(tx.created_at).toLocaleString()}</td>
+  <td>${tx.description && tx.description.toLowerCase().includes('redeem')
+              ? `Redeem: ₱${(tx.amount || 0).toFixed(2)}`
+              : `₱${(tx.amount || 0).toFixed(2)}`}</td>
+`;
+
           table.appendChild(tr);
         });
         txContainer.appendChild(table);
@@ -430,10 +422,7 @@ h1 {
 
     function filterTable() {
       const searchTerm = document.getElementById("searchPhone").value.trim().toLowerCase();
-      filteredData = customersData.filter(c =>
-        (c.phone && c.phone.toLowerCase().includes(searchTerm)) ||
-        (c.code && c.code.toLowerCase().includes(searchTerm))
-      );
+      const filteredData = customersData.filter(c => (c.phone && c.phone.toLowerCase().includes(searchTerm)) || (c.code && c.code.toLowerCase().includes(searchTerm)));
       currentPage = 1;
       renderTable(filteredData);
     }
@@ -446,19 +435,16 @@ h1 {
       pageData.forEach(c => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-        <td><button class="redeem-btn" data-code="${c.code}" ${c.amount === 0 ? 'hidden' : ''}>Redeem</button></td>
-        <td>${(c.lastName || '').toUpperCase()}, ${(c.firstName || '').toUpperCase()}</td>
-        <td>${c.phone}</td>
-        <td>${c.code}</td>
-        <td>${c.points}</td>
-        <td>₱${(c.amount || 0).toFixed(2)}</td>
-        <td><img src="/qrcodes/${c.code}.png" class="tableQR" title="QR for ${c.code}"></td>
+          <td><button class="redeem-btn" data-code="${c.code}" ${c.amount === 0 ? 'hidden' : ''}>Redeem</button></td>
+          <td>${(c.lastName || '').toUpperCase()}, ${(c.firstName || '').toUpperCase()}</td>
+          <td>${c.phone}</td>
+          <td>${c.code}</td>
+          <td>${c.points}</td>
+            <td>${c.description && c.description.toLowerCase().includes('redeem') ? `Redeem: ₱${(c.amount || 0).toFixed(2)}` : `₱${(c.amount || 0).toFixed(2)}`}</td>
+          <td><img src="/qrcodes/${c.code}.png" class="tableQR" data-code="${c.code}" title="QR for ${c.code}"></td>
         `;
         tbody.appendChild(tr);
       });
-
-      // … Keep QR click and redeem buttons the same …
-
       const totalPages = Math.ceil(data.length / rowsPerPage) || 1;
       document.getElementById("pageInfo").innerText = `Page ${currentPage} of ${totalPages}`;
     }
@@ -493,17 +479,45 @@ h1 {
     }
 
     function startScan() { const input = document.getElementById("qrInput"); input.value = ""; scanBuffer = ""; input.focus(); scannerActive = true; showScannerModal(); }
-    function showScannerModal() {
-      const modal = document.getElementById("messageModal");
-      document.getElementById("modalTitle").innerText = "📷 Scanner Ready";
-      document.getElementById("modalMessage").innerText = "Please scan the customer's QR code.";
-      const btn = modal.querySelector("button");
-      btn.innerText = "Stop"; btn.onclick = () => { closeScannerModal(); };
-      modal.style.display = "block";
-    }
-    function closeScannerModal() { document.getElementById("messageModal").style.display = "none"; const input = document.getElementById("qrInput"); input.value = ""; scanBuffer = ""; scannerActive = false; }
+    function showScannerModal() { const modal = document.getElementById("messageModal"); document.getElementById("modalTitle").innerText = "📷 Scanner Ready"; document.getElementById("modalMessage").innerText = "Please scan the customer's QR code..."; modal.style.display = "block"; }
 
-    loadCustomers();
+    async function redeemPoints(customer) {
+      const code = customer.code;
+      const maxAmount = customer.amount || 0;
+      if (maxAmount === 0) { showMessageModal("⚠️ Cannot Redeem", "Customer has no redeemable amount."); return; }
+      let redeemAmount = parseFloat(prompt(`Enter amount to redeem (Max ₱${maxAmount.toFixed(2)}):`, maxAmount));
+      if (isNaN(redeemAmount) || redeemAmount <= 0) { alert("Invalid amount entered."); return; }
+      if (redeemAmount > maxAmount) { alert(`You cannot redeem more than ₱${maxAmount.toFixed(2)}.`); return; }
+      try {
+        const res = await fetch(`/customers/${code}/redeem`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: redeemAmount }) });
+        if (!res.ok) { const text = await res.text(); console.error("Server returned:", text); showMessageModal("⚠️ Error", "Failed to redeem points."); return; }
+        const result = await res.text();
+        if (result === "ok") {
+          showMessageModal("✅ Success", `Redeemed ₱${redeemAmount.toFixed(2)} successfully!`);
+          await loadCustomers();
+        }
+      } catch (err) { console.error(err); showMessageModal("⚠️ Error", "Failed to redeem points."); }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadCustomers();
+      const tbody = document.querySelector("#customersTable tbody");
+      tbody.addEventListener("click", async function (e) {
+        const code = e.target.dataset.code;
+        if (!code) return;
+        try {
+          const res = await fetch(`/customers/${code}`);
+          if (!res.ok) { const text = await res.text(); console.error("Server returned:", text); showMessageModal("⚠️ Error", "Customer not found or server error."); return; }
+          const customer = await res.json();
+          if (e.target.classList.contains("tableQR")) {
+            showModal(customer.code, `/qrcodes/${customer.code}.png`, customer.points, customer.amount || 0, customer.transactions || [], customer.firstName, customer.lastName);
+          }
+          if (e.target.classList.contains("redeem-btn")) {
+            redeemPoints(customer);
+          }
+        } catch (err) { console.error(err); showMessageModal("⚠️ Error", "Failed to load customer data."); }
+      });
+    });
   </script>
 </body>
 
